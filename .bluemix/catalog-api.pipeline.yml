@@ -68,6 +68,7 @@ stages:
     ENABLE_COMPARE_APPS: 'false'
     DRA_MODE: 'false'
     APPLICATION_NAME: ${CF_APP_NAME}
+    APP_DESTINATION_MANIFEST: manifest.yml
     APP_DESTINATION: Alpha
     ENABLE_BOUND_SERVICE: 'true'
     APP_NOTDESTINATION: Test
@@ -141,6 +142,7 @@ stages:
     ENABLE_COMPARE_APPS: 'true'
     DRA_MODE: 'false'
     APPLICATION_NAME: ${CF_APP_NAME}
+    APP_DESTINATION_MANIFEST: manifest.yml
     APP_DESTINATION: Test
     ENABLE_BOUND_SERVICE: 'true'
     APP_NOTDESTINATION: Alpha
@@ -159,6 +161,28 @@ stages:
       cf push "${CF_APP_NAME}"
       # View logs
       #cf logs "${CF_APP_NAME}" --recent
+  - name: Sauce Labs Tests QA
+    type: tester
+    extension_id: ibm.devops.services.pipeline.saucelabs
+    target:
+      region_id: ${QA_REGION_ID}
+      organization: ${QA_ORG_NAME}
+      space: ${QA_SPACE_NAME}
+    ACCESS: ${API_KEY}
+    DL_ASSETS: 'true'
+    SELECT_CMD: custom
+    USER_ID: ${SAUCE_USER}
+    COMMAND: |-
+      #!/bin/bash
+      npm install
+      echo $APP_URL | grep "stage1"
+      if [ $? -eq 0 ]; then
+          grunt test_fake
+      else
+          grunt test_real
+      fi
+    enable_tests: true
+    test_file_pattern: '*.xml'
 - name: PROD
   inputs:
   - type: job
@@ -173,8 +197,8 @@ stages:
   - name: APP_URL
     value: undefined
     type: text
-  - name: ROUTE_DOMAIN
-    value: stage1.mybluemix.net
+  - name: AD_ENDPOINT
+    value: http://cap-sg-prd-1.integration.ibmcloud.com:15749
     type: text
   - name: GROUP_SIZE
     value: '3'
@@ -204,9 +228,10 @@ stages:
       organization: ${PROD_ORG_NAME}
       space: ${PROD_SPACE_NAME}
       application: ${CF_APP_NAME}
-    ENABLE_COMPARE_APPS: 'false'
+    ENABLE_COMPARE_APPS: 'true'
     DRA_MODE: 'false'
     APPLICATION_NAME: ${CF_APP_NAME}
+    APP_DESTINATION_MANIFEST: manifest.yml
     APP_DESTINATION: Prod
     ENABLE_BOUND_SERVICE: 'false'
     APP_NOTDESTINATION: Test

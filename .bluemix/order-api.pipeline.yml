@@ -41,17 +41,9 @@ stages:
     script: |-
       #!/bin/bash
       cf create-service sqldb sqldb_free myMicroservicesSQL
-      cf create-service mqlight standard mqLightService
-      # Publish ordersAPI
-      if ! cf service ordersAPI > /dev/null; then
-      cf cups ordersAPI
-      fi
       # Push app
       export CF_APP_NAME="dev-$CF_APP"
       cf push "${CF_APP_NAME}"
-      # Update ordersAPI
-      HOST=http://$(cf app $CF_APP_NAME | grep urls: | awk '{print $2}')
-      cf uups ordersAPI -p '{"host":"'$HOST'"}'
       # View logs
       #cf logs "${CF_APP_NAME}" --recent
 - name: QA
@@ -79,19 +71,33 @@ stages:
     script: |-
       #!/bin/bash
       cf create-service sqldb sqldb_free myMicroservicesSQL
-      cf create-service mqlight standard mqLightService
-      # Publish ordersAPI
-      if ! cf service ordersAPI > /dev/null; then
-      cf cups ordersAPI
-      fi
       # Push app
       export CF_APP_NAME="test-$CF_APP"
       cf push "${CF_APP_NAME}"
-      # Update ordersAPI
-      HOST=http://$(cf app $CF_APP_NAME | grep urls: | awk '{print $2}')
-      cf uups ordersAPI -p '{"host":"'$HOST'"}'
       # View logs
       #cf logs "${CF_APP_NAME}" --recent
+  - name: Sauce Labs Tests QA
+    type: tester
+    extension_id: ibm.devops.services.pipeline.saucelabs
+    target:
+      region_id: ${QA_REGION_ID}
+      organization: ${QA_ORG_NAME}
+      space: ${QA_SPACE_NAME}
+    ACCESS: ${API_KEY}
+    DL_ASSETS: 'true'
+    SELECT_CMD: custom
+    USER_ID: ${SAUCE_USER}
+    COMMAND: |-
+      #!/bin/bash
+      npm install
+      echo $APP_URL | grep "stage1"
+      if [ $? -eq 0 ]; then
+          grunt test_fake
+      else
+          grunt test_real
+      fi
+    enable_tests: true
+    test_file_pattern: '*.xml'
 - name: PROD
   inputs:
   - type: job
@@ -117,16 +123,8 @@ stages:
     script: |-
       #!/bin/bash
       cf create-service sqldb sqldb_free myMicroservicesSQL
-      cf create-service mqlight standard mqLightService
-      # Publish ordersAPI
-      if ! cf service ordersAPI > /dev/null; then
-      cf cups ordersAPI
-      fi
       # Push app
       export CF_APP_NAME="$CF_APP"
       cf push "${CF_APP_NAME}"
-      # Update ordersAPI
-      HOST=http://$(cf app $CF_APP_NAME | grep urls: | awk '{print $2}')
-      cf uups ordersAPI -p '{"host":"'$HOST'"}'
       # View logs
       #cf logs "${CF_APP_NAME}" --recent
