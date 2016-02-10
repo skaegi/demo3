@@ -7,6 +7,9 @@ required:
  - catalog-api-repo
  - orders-api-repo
  - ui-repo
+ - catalog-api-build
+ - orders-api-build
+ - ui-build
 
 # Github repos
 catalog-api-repo:
